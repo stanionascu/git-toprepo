@@ -139,12 +139,12 @@ impl SubRepoLedger {
     }
 
     /// Gets a `SubRepoConfig` based on a URL using exact matching. If an URL is
-    /// missing, the user should add it to the `SubRepoConfig::urls` list.
+    /// missing, the user should add it to the `SubRepoConfig::historic_urls` list.
     pub fn get_name_from_url(&self, url: &gix::Url) -> Result<Option<SubRepoName>> {
         let mut matches = self
             .subrepos
             .iter()
-            .filter(|(_name, subrepo_config)| subrepo_config.urls.iter().any(|u| u == url));
+            .filter(|(_name, subrepo_config)| subrepo_config.urls().any(|u| u == url));
         let Some(first_match) = matches.next() else {
             return Ok(None);
         };
@@ -201,7 +201,7 @@ impl SubRepoLedger {
             matching_names.push(RepoName::Top);
         }
         for (submod_name, submod_config) in self.subrepos.iter() {
-            if submod_config.urls.iter().any(|submod_url| {
+            if submod_config.urls().any(|submod_url| {
                 let full_submod_url = base_url.join(submod_url).trim_url_path();
                 full_submod_url.approx_equal(&trimmed_wanted_full_url)
             }) {
@@ -264,10 +264,19 @@ impl SubRepoLedger {
                     repo_name = existing_name.clone();
                 }
             }
-            let urls = &mut self.subrepos.entry(repo_name.clone()).or_default().urls;
-            if !urls.contains(repo_url) {
-                urls.push(repo_url.clone());
-            }
+            match self.subrepos.entry(repo_name.clone()) {
+                std::collections::btree_map::Entry::Occupied(mut sub_repo_config) => {
+                    if !sub_repo_config.get().urls().contains(repo_url) {
+                        sub_repo_config
+                            .get_mut()
+                            .historic_urls
+                            .push(repo_url.clone());
+                    }
+                }
+                std::collections::btree_map::Entry::Vacant(entry) => {
+                    entry.insert(SubRepoConfig::new_disabled(repo_url.clone()));
+                }
+            };
             return Ok(if self.missing_subrepos.insert(repo_name.clone()) {
                 GetOrInsertOk::Missing(repo_name.clone())
             } else {
@@ -1181,7 +1190,7 @@ impl<'a> CommitLoader<'a> {
                     .subrepos
                     .get(submod_repo_name)
                     .with_context(|| format!("Repo {repo_name} not found in config"))?;
-                let fetch_url = submod_contig.resolve_fetch_url();
+                let fetch_url = submod_contig.url.clone();
                 (submod_contig.enabled, fetch_url.clone())
             }
         };

@@ -23,9 +23,9 @@ git -C repoy config receive.advertisePushOptions true
 
 cat <<EOF > top/.gittoprepo.toml
 [repo.namex]
-urls = ["../repox/"]
+url = "../repox/"
 [repo.namey]
-urls = ["../repoy/"]
+url = "../repoy/"
 EOF
 git -C top add .gittoprepo.toml
 

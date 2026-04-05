@@ -204,14 +204,11 @@ suggested `[repo.*]` additions to the `.gittoprepo.toml` configuration.
 
 ```
 [repo.something]
-urls = [
-    "https://github.com/meroton/git-toprepo.git",
-    "server.example/git-toprepo.git",
-]
+url = "server.example/git-toprepo.git"
 # Keep as a regular submodule when set to false.
 enabled = true
 
-fetch.url = "ssh://git@github.com/meroton/git-toprepo.git"
+url = "ssh://git@github.com/meroton/git-toprepo.git"
 # Affects the --prune fetch arg, defaults to true.
 fetch.prune = true
 # --depth is added if set to non-zero.
@@ -222,7 +219,7 @@ fetch.depth = 0
 missing_commits = []
 
 [repo.something.push]
-# push.url defaults to fetch.url.
+# push.url defaults to the main url.
 url = "ssh://git@github.com/meroton/git-toprepo.git"
 args = []
 ```
