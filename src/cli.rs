@@ -656,6 +656,10 @@ pub struct Push {
     #[arg(long, short = 'f')]
     pub force: bool,
 
+    /// Additional options to pass to the git push command.
+    #[arg(long = "push-option", short = 'o', value_name = "PUSH-OPTION")]
+    pub push_options: Vec<String>,
+
     /// A configured git remote in the mono repository or a URL of the top
     /// repository to push to. Submodules are calculated relative this remote.
     #[arg(value_name = "TOP-REMOTE")]
