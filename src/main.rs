@@ -679,6 +679,13 @@ fn push(push_args: &cli::Push, configured_repo: &mut ConfiguredTopRepo) -> Resul
         extra_args.push("--force".to_owned());
     }
 
+    // Pass-through the push options to git push. This allows users to use features like
+    // `-o topic=name` and `-o description=desc` when pushing via AGit workflows.
+    push_args.push_options.iter().for_each(|option| {
+        extra_args.push("--push-option".to_owned());
+        extra_args.push(option.clone());
+    });
+
     let base_url = match configured_repo
         .gix_repo
         .try_find_remote(push_args.top_remote.as_bytes())

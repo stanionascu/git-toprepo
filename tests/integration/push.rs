@@ -701,6 +701,157 @@ fn force_push() {
         .stderr(predicate::str::contains(" -> other (forced update)"));
 }
 
+#[test]
+fn push_option_single() {
+    let temp_dir = crate::fixtures::toprepo::readme_example_tempdir();
+    let toprepo = temp_dir.join("top");
+    let monorepo = temp_dir.join("mono");
+    crate::fixtures::toprepo::clone(&toprepo, &monorepo);
+
+    std::fs::write(monorepo.join("file.txt"), "top\n").unwrap();
+    git_command_for_testing(&monorepo)
+        .args(["add", "file.txt"])
+        .assert()
+        .success();
+    git_command_for_testing(&monorepo)
+        .args(["commit", "-m", "Add file\n\nTopic: my-topic"])
+        .assert()
+        .success();
+
+    cargo_bin_git_toprepo_for_testing()
+        .current_dir(&monorepo)
+        .args([
+            "push",
+            "origin",
+            "--push-option",
+            "review=my-review-id",
+            "HEAD:refs/heads/foo",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains(
+            "\nremote: GIT_PUSH_OPTION_0=review=my-review-id",
+        ))
+        .stderr(predicate::str::contains(
+            "\nremote: GIT_PUSH_OPTION_1=topic=my-topic",
+        ));
+}
+
+#[test]
+fn push_option_short_form() {
+    let temp_dir = crate::fixtures::toprepo::readme_example_tempdir();
+    let toprepo = temp_dir.join("top");
+    let monorepo = temp_dir.join("mono");
+    crate::fixtures::toprepo::clone(&toprepo, &monorepo);
+
+    std::fs::write(monorepo.join("file.txt"), "top\n").unwrap();
+    git_command_for_testing(&monorepo)
+        .args(["add", "file.txt"])
+        .assert()
+        .success();
+    git_command_for_testing(&monorepo)
+        .args(["commit", "-m", "Add file"])
+        .assert()
+        .success();
+
+    cargo_bin_git_toprepo_for_testing()
+        .current_dir(&monorepo)
+        .args([
+            "push",
+            "origin",
+            "-o",
+            "description=my-desc",
+            "HEAD:refs/heads/foo",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains(
+            "\nremote: GIT_PUSH_OPTION_0=description=my-desc",
+        ));
+
+    git_command_for_testing(&toprepo)
+        .args(["show", "refs/heads/foo:file.txt"])
+        .assert()
+        .success()
+        .stdout("top\n");
+}
+
+#[test]
+fn push_option_multiple() {
+    let temp_dir = crate::fixtures::toprepo::readme_example_tempdir();
+    let toprepo = temp_dir.join("top");
+    let monorepo = temp_dir.join("mono");
+    crate::fixtures::toprepo::clone(&toprepo, &monorepo);
+
+    std::fs::write(monorepo.join("file.txt"), "top\n").unwrap();
+    git_command_for_testing(&monorepo)
+        .args(["add", "file.txt"])
+        .assert()
+        .success();
+    git_command_for_testing(&monorepo)
+        .args(["commit", "-m", "Add file\n\nTopic: my-topic"])
+        .assert()
+        .success();
+
+    cargo_bin_git_toprepo_for_testing()
+        .current_dir(&monorepo)
+        .args([
+            "push",
+            "origin",
+            "-o",
+            "key1=val1",
+            "-o",
+            "key2=val2",
+            "HEAD:refs/heads/foo",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains(
+            "\nremote: GIT_PUSH_OPTION_0=key1=val1",
+        ))
+        .stderr(predicate::str::contains(
+            "\nremote: GIT_PUSH_OPTION_1=key2=val2",
+        ))
+        .stderr(predicate::str::contains(
+            "\nremote: GIT_PUSH_OPTION_2=topic=my-topic",
+        ));
+}
+
+#[test]
+fn push_option_dry_run() {
+    let temp_dir = crate::fixtures::toprepo::readme_example_tempdir();
+    let toprepo = temp_dir.join("top");
+    let monorepo = temp_dir.join("mono");
+    crate::fixtures::toprepo::clone(&toprepo, &monorepo);
+
+    std::fs::write(monorepo.join("file.txt"), "top\n").unwrap();
+    git_command_for_testing(&monorepo)
+        .args(["add", "file.txt"])
+        .assert()
+        .success();
+    git_command_for_testing(&monorepo)
+        .args(["commit", "-m", "Add file"])
+        .assert()
+        .success();
+
+    cargo_bin_git_toprepo_for_testing()
+        .current_dir(&monorepo)
+        .args([
+            "push",
+            "origin",
+            "--dry-run",
+            "--push-option",
+            "my-opt=my-val",
+            "HEAD:refs/heads/foo",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::is_match(
+            "INFO: Would run git push .* --push-option my-opt=my-val [0-9a-f]+:refs/heads/foo\n",
+        )
+        .unwrap());
+}
+
 /// The following push error message from a Gerrit server should be ignored:
 /// ```text
 /// ! [remote rejected] HEAD -> refs/for/something (no new changes)
